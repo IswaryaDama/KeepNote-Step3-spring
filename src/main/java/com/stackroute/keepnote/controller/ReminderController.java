@@ -1,5 +1,24 @@
 package com.stackroute.keepnote.controller;
 
+import java.util.Date;
+import java.util.List;
+
+import javax.servlet.http.HttpSession;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.stackroute.keepnote.model.Category;
+import com.stackroute.keepnote.model.Reminder;
+import com.stackroute.keepnote.model.User;
 import com.stackroute.keepnote.service.ReminderService;
 
 /*
@@ -10,7 +29,7 @@ import com.stackroute.keepnote.service.ReminderService;
  * format. Starting from Spring 4 and above, we can use @RestController annotation which 
  * is equivalent to using @Controller and @ResposeBody annotation
  */
-
+@RestController
 public class ReminderController {
 
 	/*
@@ -31,11 +50,107 @@ public class ReminderController {
 	 * Constructor-based autowiring) Please note that we should not create any
 	 * object using the new keyword
 	 */
-
+   @Autowired
+   private ReminderService reminderService;
 	public ReminderController(ReminderService reminderService) {
-
+     this.reminderService=reminderService;
 	}
 
+	@PostMapping("/reminder")
+	public ResponseEntity<?> createReminder(@RequestBody Reminder reminder,HttpSession session){
+		String createdByUser=(String) session.getAttribute("loggedInUserId");
+		if(session!=null && session.getAttribute("loggedInUserId")!=null) {
+			reminder.setReminderCreatedBy(createdByUser);
+			reminder.setReminderCreationDate(new Date());
+			if(reminderService.createReminder(reminder)) {
+				return new ResponseEntity<String>("created",HttpStatus.CREATED);
+			}
+			else {
+				return new ResponseEntity<String>("Duplicate Id",HttpStatus.CONFLICT);
+			}
+		}
+		else {
+			return new ResponseEntity<String>("Unauthorised",HttpStatus.UNAUTHORIZED);
+		}
+	}
+	
+	@DeleteMapping("/reminder/{id}")
+	public ResponseEntity<?> deleteReminder(@PathVariable("id") int reminderId,HttpSession session ){
+		
+		try {
+			if(session.getAttribute("loggedInUserId")!=null) {
+				if(reminderService.deleteReminder(reminderId)) {
+					return new ResponseEntity<User>(HttpStatus.OK);
+				}else {
+					return new ResponseEntity<User>(HttpStatus.NOT_FOUND);
+				}
+			}
+			else {
+				return new ResponseEntity<User>(HttpStatus.UNAUTHORIZED);
+			}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			return new ResponseEntity<String>("Exception occured",HttpStatus.CONFLICT);
+		}
+		
+	}
+	
+	@PutMapping("/reminder/{id}")
+	public ResponseEntity<?> updateReminder(@RequestBody Reminder reminder,@PathVariable("id") int reminderId,HttpSession session){
+		try {
+			if(session.getAttribute("loggedInUserId")!=null) {
+				if(reminderService.updateReminder(reminder, reminderId)!=null) {
+					return new ResponseEntity<User>(HttpStatus.OK);
+				}else {
+					return new ResponseEntity<User>(HttpStatus.NOT_FOUND);
+				}
+			}
+			else {
+				return new ResponseEntity<String>(HttpStatus.UNAUTHORIZED);
+			}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			return new ResponseEntity<String>("Exception occured",HttpStatus.CONFLICT);
+		}
+	}
+	
+	@GetMapping("/reminder")
+	public ResponseEntity<?> getAllRemindersById(HttpSession session){
+		
+		String userId =	(String) session.getAttribute("loggedInUserId");
+		List<Reminder> reminders = reminderService.getAllReminderByUserId(userId);
+		if(session.getAttribute("loggedInUserId")==null ||reminders ==null) {
+				
+					return new ResponseEntity<String>(HttpStatus.UNAUTHORIZED);
+				
+				
+			}
+			else {
+				return new ResponseEntity<List<Reminder>>(reminders,HttpStatus.OK);
+			}
+		
+	}
+	
+	@GetMapping("/reminder/{id}")
+	public ResponseEntity<?>getReminderById(@PathVariable("id") int reminderId,HttpSession session){
+		
+		try {
+			if(session.getAttribute("loggedInUserId")!=null) {
+				if(reminderService.getReminderById(reminderId)!=null) {
+					return new ResponseEntity<User>(HttpStatus.OK);
+				}else {
+					return new ResponseEntity<User>(HttpStatus.NOT_FOUND);
+				}
+			}
+			else {
+				return new ResponseEntity<User>(HttpStatus.UNAUTHORIZED);
+			}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			return new ResponseEntity<String>("Exception occured",HttpStatus.CONFLICT);
+		}
+	}
+	
 	/*
 	 * Define a handler method which will create a reminder by reading the
 	 * Serialized reminder object from request body and save the reminder in

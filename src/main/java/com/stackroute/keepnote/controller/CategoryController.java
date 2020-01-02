@@ -1,5 +1,24 @@
 package com.stackroute.keepnote.controller;
 
+import java.util.Date;
+import java.util.List;
+
+import javax.servlet.http.HttpSession;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.stackroute.keepnote.model.Category;
+import com.stackroute.keepnote.model.User;
 import com.stackroute.keepnote.service.CategoryService;
 
 /*
@@ -10,7 +29,7 @@ import com.stackroute.keepnote.service.CategoryService;
  * format. Starting from Spring 4 and above, we can use @RestController annotation which 
  * is equivalent to using @Controller and @ResposeBody annotation
  */
-
+@RestController
 public class CategoryController {
 
 	/*
@@ -18,11 +37,88 @@ public class CategoryController {
 	 * Constructor-based autowiring) Please note that we should not create any
 	 * object using the new keyword
 	 */
-
+    @Autowired
+    private CategoryService categoryService;
+	
 	public CategoryController(CategoryService categoryService) {
-
+          this.categoryService=categoryService;
 	}
 
+	@PostMapping("/category")
+	public ResponseEntity<?> createCategory(@RequestBody Category category,HttpSession session){
+		String createdByUser=(String) session.getAttribute("loggedInUserId");
+		if(session!=null && session.getAttribute("loggedInUserId")!=null) {
+			category.setCategoryCreatedBy(createdByUser);
+			category.setCategoryCreationDate(new Date());
+			if(categoryService.createCategory(category)) {
+				return new ResponseEntity<String>("created",HttpStatus.CREATED);
+			}
+			else {
+				return new ResponseEntity<String>("Duplicate Id",HttpStatus.CONFLICT);
+			}
+		}
+		else {
+			return new ResponseEntity<String>("Unauthorised",HttpStatus.UNAUTHORIZED);
+		}
+		
+	}
+	@DeleteMapping("/category/{id}")
+	public ResponseEntity<?> deleteCategory(@PathVariable("id") int categoryId,HttpSession session ){
+		
+		try {
+			if(session.getAttribute("loggedInUserId")!=null) {
+				if(categoryService.deleteCategory(categoryId)) {
+					return new ResponseEntity<User>(HttpStatus.OK);
+				}else {
+					return new ResponseEntity<User>(HttpStatus.NOT_FOUND);
+				}
+			}
+			else {
+				return new ResponseEntity<User>(HttpStatus.UNAUTHORIZED);
+			}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			return new ResponseEntity<String>("Exception occured",HttpStatus.CONFLICT);
+		}
+		
+	}
+	
+	@PutMapping("/category/{id}")
+	public ResponseEntity<?> updateCategory(@RequestBody Category category,@PathVariable("id") int categoryId,HttpSession session){
+		try {
+			if(session.getAttribute("loggedInUserId")!=null) {
+				if(categoryService.updateCategory(category, categoryId)!=null) {
+					return new ResponseEntity<User>(HttpStatus.OK);
+				}else {
+					return new ResponseEntity<User>(HttpStatus.NOT_FOUND);
+				}
+			}
+			else {
+				return new ResponseEntity<String>(HttpStatus.UNAUTHORIZED);
+			}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			return new ResponseEntity<String>("Exception occured",HttpStatus.CONFLICT);
+		}
+	}
+	
+	@GetMapping("/category")
+	public ResponseEntity<?> getCategoryById(HttpSession session){
+		
+		String userId =	(String) session.getAttribute("loggedInUserId");
+		List<Category> allCategories = categoryService.getAllCategoryByUserId(userId);
+		if(session.getAttribute("loggedInUserId")==null ||allCategories ==null) {
+				
+					return new ResponseEntity<String>(HttpStatus.UNAUTHORIZED);
+				
+				
+			}
+			else {
+				return new ResponseEntity<List<Category>>(allCategories,HttpStatus.OK);
+			}
+		
+	}
+	
 	/*
 	 * Define a handler method which will create a category by reading the
 	 * Serialized category object from request body and save the category in

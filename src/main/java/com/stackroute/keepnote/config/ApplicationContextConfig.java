@@ -1,5 +1,26 @@
 package com.stackroute.keepnote.config;
 
+import java.util.Properties;
+
+import javax.sql.DataSource;
+
+import org.apache.commons.dbcp.BasicDataSource;
+//import org.apache.commons.dbcp2.BasicDataSource;
+import org.hibernate.SessionFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.orm.hibernate5.HibernateTransactionManager;
+import org.springframework.orm.hibernate5.LocalSessionFactoryBean;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.web.servlet.config.annotation.EnableWebMvc;
+
+import com.stackroute.keepnote.model.Category;
+import com.stackroute.keepnote.model.Note;
+import com.stackroute.keepnote.model.Reminder;
+import com.stackroute.keepnote.model.User;
+
 /*This class will contain the application-context for the application. 
  * Define the following annotations:
  * @Configuration - Annotating a class with the @Configuration indicates that the 
@@ -12,9 +33,49 @@ package com.stackroute.keepnote.config;
  *                  
  * 
  * */
-
+@Configuration
+@ComponentScan("com.stackroute.keepnote")
+@EnableWebMvc
+@EnableTransactionManagement
 public class ApplicationContextConfig {
 
+	@Bean
+	public DataSource datasource() {
+		BasicDataSource dataSource=new BasicDataSource();
+		dataSource.setDriverClassName("com.mysql.cj.jdbc.Driver");
+		dataSource.setUrl("jdbc:mysql://localhost:3306/keep_note3");
+		dataSource.setUsername("root");
+		dataSource.setPassword("root");
+	    return dataSource;
+	}
+	
+	@Bean 
+	@Autowired
+	public LocalSessionFactoryBean sessionFactory(DataSource dataSource)
+	{
+		LocalSessionFactoryBean sessionFactory=new LocalSessionFactoryBean();
+		sessionFactory.setDataSource(dataSource);
+		Properties properties=new Properties();
+		properties.put("hibernate.dialect","org.hibernate.dialect.MySQL5Dialect");
+		properties.put("hibernate.show_sql","true");
+		properties.put("hibernate.hbm2ddl.auto", "update");
+		sessionFactory.setHibernateProperties(properties);
+		sessionFactory.setAnnotatedClasses(User.class,Category.class,Note.class,Reminder.class);
+		return sessionFactory;
+		
+	}
+	
+	@Bean
+	@Autowired
+	public HibernateTransactionManager transactionManager(SessionFactory sessionFactory)
+	{
+	HibernateTransactionManager manager=new HibernateTransactionManager();
+	manager.setSessionFactory(sessionFactory);
+	return manager;
+
+	}
+	
+	
 	/*
 	 * Define the bean for DataSource. In our application, we are using MySQL as the
 	 * dataSource. To create the DataSource bean, we need to know: 1. Driver class

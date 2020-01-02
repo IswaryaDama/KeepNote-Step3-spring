@@ -1,5 +1,18 @@
 package com.stackroute.keepnote.controller;
 
+import javax.servlet.http.HttpSession;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.SessionAttributes;
+
+import com.stackroute.keepnote.exception.UserNotFoundException;
+import com.stackroute.keepnote.model.User;
 import com.stackroute.keepnote.service.UserService;
 
 /*
@@ -11,7 +24,8 @@ import com.stackroute.keepnote.service.UserService;
  * is equivalent to using @Controller and @ResposeBody annotation.
  * Annotate class with @SessionAttributes this  annotation is used to store the model attribute in the session.
  */
-
+@RestController
+@SessionAttributes
 public class UserAuthenticationController {
 
 	/*
@@ -19,11 +33,45 @@ public class UserAuthenticationController {
 	 * autowiring) Please note that we should not create any object using the new
 	 * keyword
 	 */
-
+    @Autowired
+    private UserService userService;
 	public UserAuthenticationController(UserService userService) {
-
+           this.userService=userService;
 	}
 
+	
+	@PostMapping("/login")
+	public ResponseEntity<?> userLogin(@RequestBody User user,HttpSession session) {
+	
+		
+		try {
+		if(userService.validateUser(user.getUserId(), user.getUserPassword())) {
+			String userId= user.getUserId();
+			session.setAttribute("loggedInUserId",userId);
+			return new ResponseEntity<String>("loggedi ",HttpStatus.OK);
+		}
+		else {
+		return new ResponseEntity<String>("not found",HttpStatus.UNAUTHORIZED);
+		}
+		}catch(UserNotFoundException e) {
+			
+			return new ResponseEntity<String>("UserNotFoundException",HttpStatus.CONFLICT);
+		}
+	
+	}
+	
+	@GetMapping("/logout")
+	public ResponseEntity<?> userLogout(HttpSession session){
+		
+		if(session!=null && session.getAttribute("loggedInUserId")!=null) {
+			session.invalidate();
+			return new ResponseEntity<User>(HttpStatus.OK);	
+		}
+		else {
+		
+		return new ResponseEntity<User>(HttpStatus.BAD_REQUEST);
+	}
+	}
 	/*
 	 * Define a handler method which will authenticate a user by reading the
 	 * Serialized user object from request body containing the userId and password

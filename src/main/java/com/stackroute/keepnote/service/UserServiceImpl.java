@@ -1,5 +1,9 @@
 package com.stackroute.keepnote.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.stackroute.keepnote.dao.UserDAO;
 import com.stackroute.keepnote.exception.UserAlreadyExistException;
 import com.stackroute.keepnote.exception.UserNotFoundException;
 import com.stackroute.keepnote.model.User;
@@ -13,7 +17,7 @@ import com.stackroute.keepnote.model.User;
 * better. Additionally, tool support and additional behavior might rely on it in the 
 * future.
 * */
-
+@Service
 public class UserServiceImpl implements UserService {
 
 	/*
@@ -21,14 +25,21 @@ public class UserServiceImpl implements UserService {
 	 * autowiring) Please note that we should not create any object using the new
 	 * keyword.
 	 */
-
+     @Autowired
+     private UserDAO userDao;
 	/*
 	 * This method should be used to save a new user.
 	 */
 
 	public boolean registerUser(User user) throws UserAlreadyExistException {
-		return false;
-
+		
+		if(!userDao.registerUser(user)) {
+			throw new UserAlreadyExistException("User already exists");
+		}
+		else {
+			return true;
+		}
+		
 	}
 
 	/*
@@ -36,7 +47,17 @@ public class UserServiceImpl implements UserService {
 	 */
 
 	public User updateUser(User user, String userId) throws Exception {
-		return user;
+		
+		if(getUserById(userId)==null) {
+			
+			throw new Exception("exception occured");						
+		}
+		if(userDao.updateUser(user)) {
+			return user;
+		}else {
+			return null;
+		}
+		
 
 	}
 
@@ -45,7 +66,14 @@ public class UserServiceImpl implements UserService {
 	 */
 
 	public User getUserById(String UserId) throws UserNotFoundException {
-		return null;
+	    User user1=userDao.getUserById(UserId);
+		if(user1==null) {
+			throw new UserNotFoundException("user not found");
+		}
+		else {
+			return user1;
+		}
+		
 
 	}
 
@@ -54,14 +82,20 @@ public class UserServiceImpl implements UserService {
 	 */
 
 	public boolean validateUser(String userId, String password) throws UserNotFoundException {
-		return false;
+		if(userDao.validateUser(userId, password)) {
+			return true;
+		}
+		else {
+			throw new UserNotFoundException("user not found") ;
+		}
 
 	}
 
 	/* This method should be used to delete an existing user. */
 	public boolean deleteUser(String UserId) {
-		return false;
-
+		
+			return	userDao.deleteUser(UserId);
+		
 	}
 
 }

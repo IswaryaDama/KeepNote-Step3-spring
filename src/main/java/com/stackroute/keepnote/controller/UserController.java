@@ -1,5 +1,24 @@
 package com.stackroute.keepnote.controller;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+import javax.servlet.http.HttpSession;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.stackroute.keepnote.exception.UserAlreadyExistException;
+import com.stackroute.keepnote.exception.UserNotFoundException;
+import com.stackroute.keepnote.model.User;
 import com.stackroute.keepnote.service.UserService;
 
 /*
@@ -10,7 +29,7 @@ import com.stackroute.keepnote.service.UserService;
  * format. Starting from Spring 4 and above, we can use @RestController annotation which 
  * is equivalent to using @Controller and @ResposeBody annotation
  */
-
+@RestController
 public class UserController {
 
 	/*
@@ -18,9 +37,96 @@ public class UserController {
 	 * autowiring) Please note that we should not create an object using the new
 	 * keyword
 	 */
+	
+	@Autowired
+	private UserService userService;
 
 	public UserController(UserService userService) {
+		this.userService=userService;
 	}
+	
+	@PostMapping("/user/register")
+	public ResponseEntity<?> registerUser(@RequestBody User user){
+		
+		try {
+			//SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+			Date date = new Date();
+		user.setUserAddedDate(date);	
+		Boolean status = userService.registerUser(user);
+		if(status) {
+			return new ResponseEntity<User>(HttpStatus.CREATED);
+		}
+		else {
+			return new ResponseEntity<User>(HttpStatus.CONFLICT);
+		}
+		} catch (UserAlreadyExistException e) {
+			// TODO Auto-generated catch block
+			return new ResponseEntity<String>("UserAlreadyExistException",HttpStatus.CONFLICT);
+		}
+		
+	}
+	
+	@PutMapping("/user/{id}")
+	public ResponseEntity<?>updateUser(@RequestBody User user,@PathVariable("id") String userId,HttpSession session){
+		
+		try {
+			if(session.getAttribute("loggedInUserId")!=null) {
+				user.setUserAddedDate(new Date());
+				if(userService.updateUser(user, userId)!=null) {
+					return new ResponseEntity<User>(HttpStatus.OK);
+				}else {
+					return new ResponseEntity<User>(HttpStatus.NOT_FOUND);
+				}
+			}
+			else {
+				return new ResponseEntity<User>(HttpStatus.UNAUTHORIZED);
+			}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			return new ResponseEntity<String>("Exception occured",HttpStatus.CONFLICT);
+		}
+		
+	}
+	@DeleteMapping("/user/{id}")
+	public ResponseEntity<?>deleteUser(@PathVariable("id") String userId,HttpSession session ){
+		
+		try {
+			if(session.getAttribute("loggedInUserId")!=null) {
+				if(userService.deleteUser(userId)) {
+					return new ResponseEntity<User>(HttpStatus.OK);
+				}else {
+					return new ResponseEntity<User>(HttpStatus.NOT_FOUND);
+				}
+			}
+			else {
+				return new ResponseEntity<User>(HttpStatus.UNAUTHORIZED);
+			}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			return new ResponseEntity<String>("Exception occured",HttpStatus.CONFLICT);
+		}
+	}
+	
+	@GetMapping("/user/{id}")
+	public ResponseEntity<?>getUserById(@PathVariable("id") String userId,HttpSession session){
+		try {
+			if(session.getAttribute("loggedInUserId")!=null) {
+				if(userService.getUserById(userId)!=null) {
+					return new ResponseEntity<User>(HttpStatus.OK);	
+				}	else {
+					return new ResponseEntity<User>(HttpStatus.NOT_FOUND);
+				}
+			}else {
+				return new ResponseEntity<User>(HttpStatus.UNAUTHORIZED);
+			}
+			
+		} catch (UserNotFoundException e) {
+			// TODO Auto-generated catch block
+			return new ResponseEntity<String>("Exception occured",HttpStatus.CONFLICT);
+		}
+		
+	}
+	
 
 	/*
 	 * Define a handler method which will create a specific user by reading the
