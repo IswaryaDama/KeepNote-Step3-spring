@@ -43,9 +43,15 @@ public class ApplicationContextConfig {
 	public DataSource datasource() {
 		BasicDataSource dataSource=new BasicDataSource();
 		dataSource.setDriverClassName("com.mysql.cj.jdbc.Driver");
+		dataSource.setUrl("jdbc:mysql://" + System.getenv("MYSQL_HOST") + ":3306/" +
+		 System.getenv("MYSQL_DATABASE")
+		  +"?verifyServerCertificate=false&useSSL=false&requireSSL=false");
+		  dataSource.setUsername(System.getenv("MYSQL_USER"));
+		  dataSource.setPassword(System.getenv("MYSQL_PASSWORD"));
+		/*dataSource.setDriverClassName("com.mysql.cj.jdbc.Driver");
 		dataSource.setUrl("jdbc:mysql://localhost:3306/keep_note3");
 		dataSource.setUsername("root");
-		dataSource.setPassword("root");
+		dataSource.setPassword("root");*/
 	    return dataSource;
 	}
 	
